@@ -205,3 +205,20 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+.env
+
+# Airflow
+logs/
+plugins/
+
+# System
+.DS_Store
+
+#Files
+*.parquet
+*.csv
