@@ -1,2 +1,15 @@
-# indian-stock-market-pipeline
-Full pipeline to ingest indian stock market data and create insightful dashboards
+# Indian Stock Market Pipeline
+
+## Overview
+End-to-end data pipeline for analyzing NSE and BSE historical stock data.
+
+## Tech Stack
+- GCP (GCS, BigQuery)
+- Terraform
+- Airflow
+- Spark
+- dbt
+- Streamlit
+
+## Project Structure
+(To be added)
