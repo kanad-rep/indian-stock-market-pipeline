@@ -11,28 +11,68 @@ x-airflow-common:
     AIRFLOW__CORE__FERNET_KEY: ""
     AIRFLOW__CORE__DAGBAG_IMPORT_TIMEOUT: 60
     AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
-    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+
+    # ✅ Use Postgres (NOT SQLite)
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres/airflow
+
+    # ✅ Install required Python packages
+    _PIP_ADDITIONAL_REQUIREMENTS: "google-cloud-storage requests pandas"
+
+    # ✅ GCP credentials path inside container
+    GOOGLE_APPLICATION_CREDENTIALS: /opt/airflow/creds/application_default_credentials.json
+
   volumes:
+    # DAGs + logs + plugins
     - ./airflow/dags:/opt/airflow/dags
     - ./airflow/logs:/opt/airflow/logs
     - ./airflow/plugins:/opt/airflow/plugins
+
+    # ✅ Mount ONLY credentials file (clean + secure)
+    - ~/.config/gcloud/application_default_credentials.json:/opt/airflow/creds/application_default_credentials.json
+
   depends_on:
     - postgres
 
+
 services:
+  # -------------------------
+  # Postgres DB (Persistent)
+  # -------------------------
   postgres:
     image: postgres:13
+    container_name: airflow-postgres
     environment:
       POSTGRES_USER: airflow
       POSTGRES_PASSWORD: airflow
       POSTGRES_DB: airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
 
+
+  # -------------------------
+  # Airflow Webserver
+  # -------------------------
   airflow-webserver:
     <<: *airflow-common
+    container_name: airflow-webserver-1
     command: webserver
     ports:
       - "8080:8080"
+    restart: always
 
+
+  # -------------------------
+  # Airflow Scheduler
+  # -------------------------
   airflow-scheduler:
     <<: *airflow-common
+    container_name: airflow-scheduler-1
     command: scheduler
+    restart: always
+
+
+# -------------------------
+# Persistent Volumes
+# -------------------------
+volumes:
+  postgres-db-volume:
