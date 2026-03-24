@@ -36,7 +36,7 @@ def download_nse_range(**context):
     base_url = "https://archives.nseindia.com/content/historical/EQUITIES"
     os.makedirs("/tmp/nse", exist_ok=True)
 
-    client = storage.Client()
+    client = storage.Client(project="terraform-demo-482016")
     bucket = client.bucket(BUCKET_NAME)
 
     headers = {"User-Agent": "Mozilla/5.0"}
