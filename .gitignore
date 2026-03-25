@@ -221,3 +221,4 @@ plugins/
 
 #Files
 *.parquet
+creds.json
