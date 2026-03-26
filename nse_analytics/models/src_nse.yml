@@ -1,0 +1,8 @@
+version: 2
+
+sources:
+  - name: nse
+    database: terraform-demo-482016
+    schema: india_stock_market
+    tables:
+      - name: nse_processed_external

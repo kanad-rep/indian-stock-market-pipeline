@@ -45,13 +45,16 @@ sector_df = spark.read.csv("data/sector_mapping.csv", header=True)
 # ----------------------------
 df_joined = df.join(sector_df, on = "SYMBOL", how = "left")
 
+
+df_joined = df_joined.withColumn("TRADE_DATE", to_date(trim(col("DATE1")), "dd-MMM-yyyy"))
+
 # ----------------------------
 # CLEAN
 # ----------------------------
 df_clean = df_joined.select(
     col("SYMBOL"),
     col("SERIES"),
-    col("DATE1"),
+    col("TRADE_DATE"),
     col("PREV_CLOSE").cast("double"),
     col("OPEN_PRICE").cast("double"),
     col("HIGH_PRICE").cast("double"),
@@ -67,9 +70,6 @@ df_clean = df_joined.select(
     col("SECTOR")
 )
 
-# Convert date
-df_clean = df_clean.withColumn("date", to_date(trim(col("DATE1")), "dd-MMM-yyyy"))
-
 
 #See Sector Distribution
 print("Sector Distribution:")
@@ -79,7 +79,7 @@ df_clean.groupBy("SECTOR").count().show()
 # ----------------------------
 df_clean.write \
     .mode("overwrite") \
-    .partitionBy("date") \
+    .partitionBy("TRADE_DATE") \
     .parquet(OUTPUT_PATH)
 
 print("✅ Data written to GCS (Parquet)")
