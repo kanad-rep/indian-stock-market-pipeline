@@ -83,7 +83,9 @@ Each file represents one trading day and contains records for all traded stocks.
 * Looker Studio
 
 ## Project Structure
-(To be added)
+The database has the following architecture:
+
+![NSE Stock Market Database Pipeline](NSE_pipeline_image.png)
 
 ## Usability
 ### Step 1: Environment & Cloud Setup
@@ -421,5 +423,8 @@ Finally, we connect BigQuery to Looker Studio to create a production-grade finan
     * Sector Analysis: Powered by `sector_performance`, this chart filters the top 5 sectors by trading volume to identify where institutional money is moving.
     * Long-term Momentum: Leverages the `monthly_stock_trends` model to smooth out daily volatility and show 3-month and 6-month growth trajectories.
     * Market Overview (Top Movers): Uses the `top_movers` model to show daily gainers and losers with conditional green/red formatting.
+
+Final Dashboard:
+![NSE Stock Market Dashboard](dashboard/India_Stock_Market_Dashboard.png)
 
 [View Dashboard](https://lookerstudio.google.com/s/lYhJcaQkmlA)
