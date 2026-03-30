@@ -75,12 +75,12 @@ Each file represents one trading day and contains records for all traded stocks.
 
 
 ## Tech Stack
-- GCP (GCS, BigQuery)
-- Terraform
-- Airflow
-- Spark
-- dbt
-- Streamlit
+* GCP (GCS, BigQuery)
+* Terraform
+* Airflow
+* Spark
+* dbt
+* Looker Studio
 
 ## Project Structure
 (To be added)
@@ -99,6 +99,7 @@ Before running any code, you need a Google Cloud Platform (GCP) project and the 
 4. Install Tools: Ensure you have the Google Cloud SDK, Terraform, and Python 3.9+ installed.
     #### 1. Google Cloud SDK (gcloud CLI)
     The Google Cloud SDK is required to authenticate with GCP and manage cloud resources from the terminal.
+
     ```bash
     # Update package list and install dependencies
     sudo apt-get update
@@ -119,6 +120,7 @@ Before running any code, you need a Google Cloud Platform (GCP) project and the 
 
     #### 2. Terraform
     Terraform is used to provision the GCS buckets and BigQuery datasets as Infrastructure as Code.
+
     ```bash
     # Install HashiCorp's GPG key
     wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
@@ -132,8 +134,9 @@ Before running any code, you need a Google Cloud Platform (GCP) project and the 
     # Verify installation
     terraform -version
     ```
-    #### Python 3.9+ & Virtual Environment
+    #### 3. Python 3.9+ & Virtual Environment
     Python is used for data ingestion scripts and dbt.
+
     ```bash
     # Update and install Python, Pip, and Venv
     sudo apt update
@@ -150,19 +153,23 @@ Before running any code, you need a Google Cloud Platform (GCP) project and the 
 ### Step 2: Infrastructure as Code (Terraform)
 We use Terraform to provision a **GCS bucket** (Data Lake) and a **BigQuery dataset** (Data Warehouse).
 1. Initialize Terraform:
+    
     ```bash
     cd terraform
     terraform init
     ```
 2. Apply Configuration: Replace the variable with your actual Project ID.
+    
     ```bash
     terraform apply -var="project_id=YOUR_PROJECT_ID" -var="region=asia-south1"
     ```
+    
     Note: This creates the `stock-market-lake` bucket and `india_stock_market` dataset.
 
 ### Step 3: Orchestration & Ingestion (Apache Airflow)
 The ingestion layer is managed by Apache Airflow. The DAG is responsible for scraping the NSE website and landing the raw data.
 1. Initialize & Create Admin:
+    
     ```bash
     # Initialize metadata DB
     docker compose run airflow-webserver airflow db init
@@ -182,11 +189,12 @@ The ingestion layer is managed by Apache Airflow. The DAG is responsible for scr
 ### Step 4: Data Transformation (Spark)
 Once the raw data is landed, a dedicated Spark container processes the data to make it "Analytics Ready."
 1. **The Processing Logic**:
-    - **Sector Mapping**: Joins the `SYMBOL` from the raw data with the `sector_mapping.csv` mapping file.
-    - **Format Conversion**: Selects the necessary fields and converts raw CSV to Parquet for optimized BigQuery performance.
-    - **Partitioning**: Writes the data to `gs://<YOUR_BUCKET_NAME>/processed/nse/` using Hive-style partitioning (e.g., `/TRADE_DATE=YYYY-MM-DD/`).
+    * **Sector Mapping**: Joins the `SYMBOL` from the raw data with the `sector_mapping.csv` mapping file.
+    * **Format Conversion**: Selects the necessary fields and converts raw CSV to Parquet for optimized BigQuery performance.
+    * **Partitioning**: Writes the data to `gs://<YOUR_BUCKET_NAME>/processed/nse/` using Hive-style partitioning (e.g., `/TRADE_DATE=YYYY-MM-DD/`).
 2. **Submit the Spark Job**:
     Run this command from your Spark container to trigger the transformation:
+    
     ```bash
     /opt/spark/bin/spark-submit \
     --conf spark.hadoop.fs.gs.impl=com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem \
@@ -199,7 +207,9 @@ Once the raw data is landed, a dedicated Spark container processes the data to m
 ### Step 5: Analytics Engineering (dbt)
 With the partitioned Parquet data sitting in the `/processed/` folder, dbt takes over to create the final warehouse tables.
 1. Installation & Virtual Environment
+    
     Isolate dbt to prevent version conflicts with other Python tools like Airflow or Spark.
+    
     ```bash
     # Create and activate a virtual environment
     python3 -m venv dbt-env
@@ -209,22 +219,28 @@ With the partitioned Parquet data sitting in the `/processed/` folder, dbt takes
     pip install dbt-bigquery
     ```
 2. Project Initialization
+    
     Initialize the `nse_analytics` project. This creates the required folder structure and a `profiles.yml` file.
+    
     ```bash
     dbt init nse_analytics
     ```
     Settings to choose during the wizard:
-        - Database: bigquery
-        - Method: service_account
-        - Keyfile: /path/to/<YOUR_CREDS>.json
-        - Project: <YOUR_GCP_PROJECT_ID>
-        - Dataset: <YOUR_DATASET_NAME>
-        - Threads: 4
-        - Location: asia-south1
+        
+    * Database: `bigquery`
+    * Method: `service_account`
+    * Keyfile: `/path/to/<YOUR_CREDS>.json`
+    * Project: `<YOUR_GCP_PROJECT_ID>`
+    * Dataset: `<YOUR_DATASET_NAME>`
+    * Threads: `4`
+    * Location: `asia-south1`
 
 3. Defining the Data Source (`models/staging/src_nse.yml`)
+    
     Instead of hardcoding table names in your SQL, define them in a `source.yml` file. This allows dbt to "know" about the table Spark created in BigQuery.
+    
     Create `models/staging/src_nse.yml`:
+    
     ```yaml
     version: 2
 
@@ -236,7 +252,9 @@ With the partitioned Parquet data sitting in the `/processed/` folder, dbt takes
         - name: nse_processed_external
     ```
 4. Refactoring the Staging Model (`models/staging/stg_nse.sql`)
+    
     Now, update your staging model to use the {{ source() }} function. This links your model to the source defined above.
+    
     ```sql
     {{ config(materialized='view') }}
 
@@ -268,19 +286,24 @@ With the partitioned Parquet data sitting in the `/processed/` folder, dbt takes
     WHERE TRIM(SERIES) = 'EQ'
     ```
 5. Managing Dependencies (`packages.yml`)
+    
     To use advanced features like surrogate keys, you need the dbt-utils package. Create this file in the root of your dbt project.
+   
     ```yaml
     packages:
     - package: dbt-labs/dbt_utils
         version: 1.3.3
     ```
     Install the package:
+   
     ```bash
     dbt deps
     ```
 
 6. Final Execution Workflow for verification
+    
     To replicate the analytics layer from scratch, run these commands in order:
+    
     ```bash
     # 1. Check connection to BigQuery
     dbt debug
@@ -290,11 +313,13 @@ With the partitioned Parquet data sitting in the `/processed/` folder, dbt takes
     ```
 
 7. Core Analytics:
+    
     To complete the Marts layer of your dbt project, you will create four SQL models. These models represent the "Gold" or "Business" layer of your architecture—they are designed specifically for Looker Studio to consume.
 
     Place these files in your `models/marts/` directory.
 
     1. **Sector Performance Model**
+    
     This model aggregates daily data to show how different sectors are performing. It powers your sector-wise line and bar charts.
 
     File: `models/marts/sector_performance.sql`
@@ -312,6 +337,7 @@ With the partitioned Parquet data sitting in the `/processed/` folder, dbt takes
     GROUP BY 1, 2
     ```
     2. **Stock Trends (Technical Analysis)**
+    
     This model adds technical indicators like Moving Averages. We use Window Functions to look back at historical rows for each specific stock.
 
     File: `models/marts/stock_trends.sql`
@@ -334,6 +360,7 @@ With the partitioned Parquet data sitting in the `/processed/` folder, dbt takes
     FROM daily_metrics
     ```
     3. **Top Movers (Daily Snapshot)**
+    
     This model isolates the most recent trading day to identify the "Gainers" and "Losers." This is perfect for a high-impact table on your dashboard.
 
     File: `models/marts/top_movers.sql`
@@ -355,6 +382,7 @@ With the partitioned Parquet data sitting in the `/processed/` folder, dbt takes
     WHERE trade_date = (SELECT MAX(trade_date) FROM {{ ref('stg_nse') }})
     ```
     4. **Monthly Stock Trends**
+    
     For long-term investors, daily noise is less important than monthly trends. This model truncates dates to the month level and calculates 3-month and 6-month averages.
 
     File: `models/marts/monthly_stock_trends.sql`
@@ -382,6 +410,7 @@ With the partitioned Parquet data sitting in the `/processed/` folder, dbt takes
 
     #### Running the Full Marts Build
     Once these files are in place, run the following command to materialize them as tables in your BigQuery dataset:
+
     ```bash
     dbt build
     ```
@@ -389,7 +418,8 @@ With the partitioned Parquet data sitting in the `/processed/` folder, dbt takes
 Finally, we connect BigQuery to Looker Studio to create a production-grade financial dashboard.
 1. **Data Connection**: Connect to  `<YOUR_PROJECT_ID>.<YOUR_DATASET>` dataset.
 2. **Dashboard Features**:
-        - Sector Analysis: Powered by `sector_performance`, this chart filters the top 5 sectors by trading volume to identify where institutional money is moving.
-        - Long-term Momentum: Leverages the `monthly_stock_trends` model to smooth out daily volatility and show 3-month and 6-month growth trajectories.
-        - Market Overview (Top Movers): Uses the `top_movers` model to show daily gainers and losers with conditional green/red formatting.
-    [View Dashboard](https://lookerstudio.google.com/s/lYhJcaQkmlA)
+    * Sector Analysis: Powered by `sector_performance`, this chart filters the top 5 sectors by trading volume to identify where institutional money is moving.
+    * Long-term Momentum: Leverages the `monthly_stock_trends` model to smooth out daily volatility and show 3-month and 6-month growth trajectories.
+    * Market Overview (Top Movers): Uses the `top_movers` model to show daily gainers and losers with conditional green/red formatting.
+
+[View Dashboard](https://lookerstudio.google.com/s/lYhJcaQkmlA)
