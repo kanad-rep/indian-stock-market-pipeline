@@ -23,5 +23,6 @@ SELECT
 
     {{ dbt_utils.generate_surrogate_key(['symbol', 'trade_date']) }} AS nse_id
 
-FROM `terraform-demo-482016.india_stock_market.nse_processed_external`
+-- Use the source function instead of a hardcoded string
+FROM {{ source('staging', 'nse_processed_external') }}
 WHERE TRIM(SERIES) = 'EQ'
