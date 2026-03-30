@@ -425,6 +425,7 @@ Finally, we connect BigQuery to Looker Studio to create a production-grade finan
     * Market Overview (Top Movers): Uses the `top_movers` model to show daily gainers and losers with conditional green/red formatting.
 
 Final Dashboard:
+
 ![NSE Stock Market Dashboard](dashboard/India_Stock_Market_Dashboard.png)
 
 [View Dashboard](https://lookerstudio.google.com/s/lYhJcaQkmlA)
