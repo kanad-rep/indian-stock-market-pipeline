@@ -84,3 +84,35 @@ Each file represents one trading day and contains records for all traded stocks.
 
 ## Project Structure
 (To be added)
+
+## Usability
+### Step 1: Environment & Cloud Setup
+Before running any code, you need a Google Cloud Platform (GCP) project and the necessary credentials.
+1. **Create a GCP Project**: Go to the GCP Console and create a project (e.g., nse-pipeline-2026).
+2. **Enable APIs**: Enable the BigQuery and Cloud Storage APIs.
+3. **Create a Service Account**:
+    - Go to **IAM & Admin > Service Accounts**.
+    - Create an account named `dbt-runner`.
+    - Grant these roles: `BigQuery Admin`, `Storage Object Admin`, `Storage Insights Viewer`.
+    - **Create a JSON Key**: Actions > Manage Keys > Add Key > Create New Key (JSON). Save this as `creds.json`.
+
+4. Install Tools: Ensure you have the Google Cloud SDK, Terraform, and Python 3.9+ installed.
+    #### 1. Google Cloud SDK (gcloud CLI)
+    The Google Cloud SDK is required to authenticate with GCP and manage cloud resources from the terminal.
+    ```bash
+    # Update package list and install dependencies
+    sudo apt-get update
+    sudo apt-get install apt-transport-https ca-certificates gnupg curl -y
+
+    # Import the Google Cloud public key
+    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+
+    # Add the gcloud SDK repo to your system
+    echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+
+    # Install the SDK
+    sudo apt-get update && sudo apt-get install google-cloud-cli -y
+
+    # Verify installation
+    gcloud --version
+    ```
